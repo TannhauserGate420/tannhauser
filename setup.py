@@ -40,9 +40,9 @@ setup(
                     'stem',
                     'fake_http_header',
                     'PySocks'],
-    entry_points = {
-        "console_scripts": ["tannhauser = atomicswap.__main__:main"]
-    },
+    #entry_points = {
+    #    "console_scripts": ["tannhauser = atomicswap.__main__:main"]
+    #},
     classifiers = [
           'Development Status :: 5 - Development',
           'Environment :: Console/Gui',
