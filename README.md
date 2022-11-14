@@ -2,6 +2,10 @@
 
 ![swap18](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap18.png)
 
+## Video Showcase (YouTube)
+
+[![Video](https://img.youtube.com/vi/qfZ3Hac58Pw/0.jpg)](https://youtu.be/watch?v=qfZ3Hac58Pw "TannhauserGate")
+
 ## Installation
 
 **Its recommended to create a virtual environment for Tannhauser:**
@@ -47,7 +51,7 @@ Tannhauser Gate depends at [Tor](https://github.com/torproject/tor), [BitcoinCor
    ![swap4](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap4.png)
 
 
-5. **Enter the amount in Satoshis you want to swap:**
+5. **Enter the amount you want to swap:**
 
    ![swap5](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap5.png)
 
