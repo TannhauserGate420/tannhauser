@@ -1,7 +1,5 @@
 # Tannhauser Gate Atomic Swap
 
-![swap18](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap18.png)
-
 ## Video Showcase (YouTube)
 
 [![Video](https://img.youtube.com/vi/qfZ3Hac58Pw/0.jpg)](https://youtu.be/watch?v=qfZ3Hac58Pw "TannhauserGate")
