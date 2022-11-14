@@ -40,19 +40,19 @@ setup(
                     'stem',
                     'fake_http_header',
                     'PySocks'],
-    #entry_points = {
-    #    "console_scripts": ["tannhauser = atomicswap.__main__:main"]
-    #},
+    entry_points = {
+        "console_scripts": ["tannhauser = atomicswap.__main__:main"]
+    },
     classifiers = [
-          'Development Status :: 5 - Development',
-          'Environment :: Console/Gui',
+          'Development Status :: 3 - Alpha',
+          'Environment :: X11 Applications :: Qt',
           'Intended Audience :: End Users/Desktop',
-          'License :: GPL3',
-          'Operating System :: MacOS :: MacOS X',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+          'Operating System :: MacOS',
           'Operating System :: Microsoft :: Windows',
           'Operating System :: POSIX',
-          'Programming Language :: Python3',
-          'Topic :: Atomicswap',
+          'Programming Language :: Python :: 3 :: Only',
+          'Topic :: Utilities'
           ],
     include_package_data = True
 )
