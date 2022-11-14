@@ -23,7 +23,7 @@ pip install -e .
 
 ## Depends
 
-Tannhauser Gate depends at [Tor](https://github.com/torproject/tor), [BitcoinCore](https://github.com/bitcoin/bitcoin) and [LitecoinCore](https://github.com/litecoin-project/litecoin). Please install it first. You will find sample config files [here](https://github.com/TannhauserGate420/atomicSwap/tree/main/atomicswap/contrib).
+Tannhauser Gate depends at [Tor](https://github.com/torproject/tor), [BitcoinCore](https://github.com/bitcoin/bitcoin) and [LitecoinCore](https://github.com/litecoin-project/litecoin). Please install it first. You will find sample config files [here](https://github.com/TannhauserGate420/tannhauser/tree/main/atomicswap/contrib).
 
 ## Showcase
 
