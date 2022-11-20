@@ -6,14 +6,19 @@
 
 ## Installation
 
+**via pip :**
+```
+pip install TannhauserGate
+```
+
 **Its recommended to create a virtual environment for Tannhauser:**
 ```
 python3 -m venv venv
 . venv/bin/activate
-pip install .
 ```
 
-**Run the latest version:**
+**Latest version:**
+
 ```
 pip install git+git://github.com/TannhauserGate420/tannhauser.git
 ```
@@ -25,6 +30,7 @@ pip install -e .
 ```
 
 ## Run
+**sudo is required if you installed Tannhauser systemwide**
 ```
 tannhauser
 ```
