@@ -9,7 +9,7 @@
 **Its recommended to create a virtual environment for Tannhauser:**
 ```
 python3 -m venv venv
-. venv/build/activate
+. venv/bin/activate
 ```
 
 **Run the latest version:**
