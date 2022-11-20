@@ -1,0 +1,4 @@
+SOCKSPort 9050
+RunAsDaemon 1
+DataDirectory /your/path/to/tor/dir
+CookieAuthentication 1
