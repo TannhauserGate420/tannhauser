@@ -282,7 +282,11 @@ class Output(QWidget):
             self.srvr1.setStyleSheet("color: #E5E5E5")
             self.srvr1.setAlignment(Qt.AlignRight)
 
-            _stat = f"\n ONLINE {emoji.emojize(':grinning_face:')}\n YEP {emoji.emojize(':grinning_face:')}\n {self.server_status['success_count']}\n {self.server_status['refund_count']}\n {self.server_status['btc_ltc']}\n {self.server_status['ltc_btc']}\n {self.server_status['btc_min_btc']:,} / {self.server_status['btc_max_btc']:,}\n {self.server_status['ltc_min_ltc']:,} / {self.server_status['ltc_max_ltc']:,}\n BTC {self.server_status['btc_bond_btc']:,} / LTC {self.server_status['ltc_bond_ltc']:,}"
+            if self.server_status['swap_possible']:
+                _stat = f"\n ONLINE {emoji.emojize(':grinning_face:')}\n YEP {emoji.emojize(':grinning_face:')}\n {self.server_status['success_count']}\n {self.server_status['refund_count']}\n {self.server_status['btc_ltc']}\n {self.server_status['ltc_btc']}\n {self.server_status['btc_min_btc']:,} / {self.server_status['btc_max_btc']:,}\n {self.server_status['ltc_min_ltc']:,} / {self.server_status['ltc_max_ltc']:,}\n BTC {self.server_status['btc_bond_btc']:,} / LTC {self.server_status['ltc_bond_ltc']:,}"
+            else:
+                _stat = f"\n ONLINE {emoji.emojize(':grinning_face:')}\n NOPE {emoji.emojize(':frowning_face:')}\n {self.server_status['success_count']}\n {self.server_status['refund_count']}\n {self.server_status['btc_ltc']}\n {self.server_status['ltc_btc']}\n {self.server_status['btc_min_btc']:,} / {self.server_status['btc_max_btc']:,}\n {self.server_status['ltc_min_ltc']:,} / {self.server_status['ltc_max_ltc']:,}\n BTC {self.server_status['btc_bond_btc']:,} / LTC {self.server_status['ltc_bond_ltc']:,}"
+            
             self.srvr2 = QLabel(_stat)
             font = self.srvr2.font()
             font.setPointSize(12)
@@ -944,7 +948,7 @@ class MainWindow(QMainWindow):
                 self.button1.clicked.connect(self.init_swap)
 
                 try:
-                    if self._ping_server['type'] == 'server_online' and not self._ping_server['status']:
+                    if self._ping_server['type'] == 'server_online' and not self._ping_server['status'] or self._ping_server['type'] == 'ping_server' and not self._ping_server['swap_possible']:
                         self.button1.setEnabled(False)
                     else:
                         pass
