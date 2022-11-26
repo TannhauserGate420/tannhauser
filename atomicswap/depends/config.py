@@ -2,7 +2,7 @@
 
 tannhauser = {
     "name" : "Tannhauser Gate Atomic Swap Service",
-    "version" : "0.2.2 dev",
+    "version" : "0.2.3 dev",
     "authors" : ("iizegrim"),
     "license" : "GPL3",
     "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion'],

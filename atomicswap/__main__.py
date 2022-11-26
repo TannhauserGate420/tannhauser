@@ -286,7 +286,7 @@ class Output(QWidget):
                 _stat = f"\n ONLINE {emoji.emojize(':grinning_face:')}\n YEP {emoji.emojize(':grinning_face:')}\n {self.server_status['success_count']}\n {self.server_status['refund_count']}\n {self.server_status['btc_ltc']}\n {self.server_status['ltc_btc']}\n {self.server_status['btc_min_btc']:,} / {self.server_status['btc_max_btc']:,}\n {self.server_status['ltc_min_ltc']:,} / {self.server_status['ltc_max_ltc']:,}\n BTC {self.server_status['btc_bond_btc']:,} / LTC {self.server_status['ltc_bond_ltc']:,}"
             else:
                 _stat = f"\n ONLINE {emoji.emojize(':grinning_face:')}\n NOPE {emoji.emojize(':frowning_face:')}\n {self.server_status['success_count']}\n {self.server_status['refund_count']}\n {self.server_status['btc_ltc']}\n {self.server_status['ltc_btc']}\n {self.server_status['btc_min_btc']:,} / {self.server_status['btc_max_btc']:,}\n {self.server_status['ltc_min_ltc']:,} / {self.server_status['ltc_max_ltc']:,}\n BTC {self.server_status['btc_bond_btc']:,} / LTC {self.server_status['ltc_bond_ltc']:,}"
-            
+
             self.srvr2 = QLabel(_stat)
             font = self.srvr2.font()
             font.setPointSize(12)
@@ -717,7 +717,17 @@ class MainWindow(QMainWindow):
         # load user data
         self._user_data = self.load_user_data()
 
-        if self._user_data:
+        if not self._user_data:
+            self._user_data = self.save_user_data(True)
+        elif self._user_data == 'wrong password!':
+            _okBox = QMessageBox()
+            _okBox.setIcon(QMessageBox.Information)
+            _okBox.setWindowTitle("INFO")
+            _okBox.setStandardButtons(QMessageBox.Ok)
+            _okBox.setStyleSheet('color: white; background-color: red; font: bold')
+            _okBox.setText(f"< p align = 'center'>{self._user_data}</p>".upper())
+            _res = _okBox.exec()
+        else:
             self._user_tor_data = {
                 "tor_url": self._user_data['_tor_url'],
                 "tor_port": self._user_data['_tor_port'],
@@ -739,11 +749,9 @@ class MainWindow(QMainWindow):
                 "ltc_rpc_port": self._user_data['_ltc_rpc_port'],
                 "ltc_walletpassphrase": self._user_data['_ltc_walletpassphrase'],
             }
-        else:
-            self._user_data = self.save_user_data(True)
 
-        # get server data
-        self.get_server_data()
+            # get server data
+            self.get_server_data()
 
     def get_server_data(self):
         try:
@@ -2851,7 +2859,16 @@ class MainWindow(QMainWindow):
 
     def load_user_data(self):
         try:
-            _load = utils.load_user_data()
+            # check 4 file
+            _file_exists = utils.check_user_file()
+
+            if _file_exists:
+                # input passphrase
+                _user_password, _input = QInputDialog.getText(self, "YOUR TANNHAUSER PASSWORD","PLEASE ENTER YOUR TANNHAUSER PASSWORD:", QLineEdit.Password, "TANNHAUSER PASSWORD")
+                _load = utils.load_user_data(_user_password)
+            else:
+                _load = False
+
             return _load
         except Exception as ex:
             print(ex)
@@ -2871,66 +2888,125 @@ class MainWindow(QMainWindow):
                 pass
 
             _btc_rpc_username, _input1 = QInputDialog.getText(self, "BITCOIN RPC USER","PLEASE ENTER THE BITCOIN RPC USER:", QLineEdit.Normal, "YOUR BITCOIN RPC USERNAME")
-            _btc_rpc_password, _input2 = QInputDialog.getText(self, "BITCOIN RPC PASSWORD","PLEASE ENTER THE BITCOIN RPC PASSWORD:", QLineEdit.Normal, "YOUR BITCOIN RPC PASSWORD")
-            _btc_rpc_url, _input3 = QInputDialog.getText(self, "BITCOIN RPC URL","PLEASE ENTER THE BITCOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
-            _btc_rpc_port, _input4 = QInputDialog.getInt(self, "BITCOIN CORE PORT","PLEASE ENTER THE BITCOIN PORT:", 2, 8332, 65000, 1)
-            _btc_walletpassphrase, _input5 = QInputDialog.getText(self, "BITCOIN WALLET PASSPHRASE","PLEASE ENTER YOUR BITCOIN WALLET PASSPHRASE:", QLineEdit.Normal, "YOUR BITCOIN WALLET PASSPHRASE")
+            if _input1 and _btc_rpc_username and not _btc_rpc_username.isspace():
+                _btc_rpc_password, _input2 = QInputDialog.getText(self, "BITCOIN RPC PASSWORD","PLEASE ENTER THE BITCOIN RPC PASSWORD:", QLineEdit.Password, "RPC PASSWORD")
+                if _input2 and _btc_rpc_password and not _btc_rpc_password.isspace():
+                    _btc_rpc_url, _input3 = QInputDialog.getText(self, "BITCOIN RPC URL","PLEASE ENTER THE BITCOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
+                    if _input3 and _btc_rpc_url and not _btc_rpc_url.isspace():
+                        _btc_rpc_port, _input4 = QInputDialog.getInt(self, "BITCOIN CORE PORT","PLEASE ENTER THE BITCOIN PORT:", 2, 8332, 65000, 1)
+                        if _input4 and _btc_rpc_port:
+                            _btc_walletpassphrase, _input5 = QInputDialog.getText(self, "BITCOIN WALLET PASSPHRASE","PLEASE ENTER YOUR BITCOIN WALLET PASSPHRASE:", QLineEdit.Password, "WALLET PASSPHRASE")
+                            if _input5 and _btc_walletpassphrase and not _btc_walletpassphrase.isspace():
+                                _ltc_rpc_username, _input6 = QInputDialog.getText(self, "LITECOIN RPC USER","PLEASE ENTER THE LITECOIN RPC USER:", QLineEdit.Normal, "YOUR LITECOIN RPC USERNAME")
+                                if _input6 and _ltc_rpc_username and not _ltc_rpc_username.isspace():
+                                    _ltc_rpc_password, _input7 = QInputDialog.getText(self, "LITECOIN RPC PASSWORD","PLEASE ENTER THE LITECOIN RPC PASSWORD:", QLineEdit.Password, "RPC PASSWORD")
+                                    if _input7 and _ltc_rpc_password and not _ltc_rpc_password.isspace():
+                                        _ltc_rpc_url, _input8 = QInputDialog.getText(self, "LITECOIN RPC URL","PLEASE ENTER THE LITECOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
+                                        if _input8 and _ltc_rpc_url and not _ltc_rpc_url.isspace():
+                                            _ltc_rpc_port, _input9 = QInputDialog.getInt(self, "LITECOIN CORE PORT","PLEASE ENTER THE LITECOIN RPC PORT:", 2, 9332, 65000, 1)
+                                            if _input9 and _ltc_rpc_port:
+                                                _ltc_walletpassphrase, _input10 = QInputDialog.getText(self, "LITECOIN WALLET PASSPHRASE","PLEASE ENTER THE LITECOIN WALLET PASSPHRASE:", QLineEdit.Password, "WALLET PASSPHRASE")
+                                                if _input10 and _ltc_walletpassphrase and not _ltc_walletpassphrase.isspace():
+                                                    _tor_url, _input11 = QInputDialog.getText(self, "TOR URL","PLEASE ENTER THE TOR URL:", QLineEdit.Normal, "127.0.0.1")
+                                                    if _input11 and _tor_url and not _tor_url.isspace():
+                                                        _tor_port, _input12 = QInputDialog.getInt(self, "TOR PORT","PLEASE ENTER THE TOR PORT:", 2, 9050, 65000, 1)
+                                                        if _input12 and _tor_port:
+                                                            _tor_control_port, _input13 = QInputDialog.getInt(self, "TOR CONTROL PORT","PLEASE ENTER THE TOR CONTROL PORT:", 2, 9051, 65000, 1)
+                                                            if _input13 and _tor_control_port:
+                                                                _user_password, _input14 = QInputDialog.getText(self, "YOUR TANNHAUSER PASSWORD","PLEASE ENTER YOUR TANNHAUSER PASSWORD:", QLineEdit.Password, "TANNHAUSER PASSWORD")
+                                                                if _input14 and _user_password and not _user_password.isspace():
+                                                                    _user_password_verify, _input15 = QInputDialog.getText(self, "REPEAT YOUR TANNHAUSER PASSWORD","PLEASE REPEAT YOUR TANNHAUSER PASSWORD:", QLineEdit.Password, "TANNHAUSER PASSWORD")
+                                                                    if _input15 and _user_password_verify and not _user_password_verify.isspace():
+                                                                        # check passphrase
+                                                                        _verify_ok = True if _user_password == _user_password_verify else False
 
-            _ltc_rpc_username, _input6 = QInputDialog.getText(self, "LITECOIN RPC USER","PLEASE ENTER THE LITECOIN RPC USER:", QLineEdit.Normal, "YOUR LITECOIN RPC USERNAME")
-            _ltc_rpc_password, _input7 = QInputDialog.getText(self, "LITECOIN RPC PASSWORD","PLEASE ENTER THE LITECOIN RPC PASSWORD:", QLineEdit.Normal, "YOUR LITECOIN RPC PASSWORD")
-            _ltc_rpc_url, _input8 = QInputDialog.getText(self, "LITECOIN RPC URL","PLEASE ENTER THE LITECOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
-            _ltc_rpc_port, _input9 = QInputDialog.getInt(self, "LITECOIN CORE PORT","PLEASE ENTER THE LITECOIN RPC PORT:", 2, 9332, 65000, 1)
-            _ltc_walletpassphrase, _input10 = QInputDialog.getText(self, "LITECOIN WALLET PASSPHRASE","PLEASE ENTER THE LITECOIN WALLET PASSPHRASE:", QLineEdit.Normal, "YOUR LITECOIN WALLET PASSPHRASE")
+                                                                        if _verify_ok:
+                                                                            # collect it
+                                                                            self._user_data = {
+                                                                                "_btc_rpc_user": _btc_rpc_username,
+                                                                                "_btc_rpc_password": _btc_rpc_password,
+                                                                                "_btc_rpc_url": _btc_rpc_url,
+                                                                                "_btc_rpc_port": _btc_rpc_port,
+                                                                                "_btc_walletpassphrase": _btc_walletpassphrase,
+                                                                                "_ltc_rpc_user": _ltc_rpc_username,
+                                                                                "_ltc_rpc_password": _ltc_rpc_password,
+                                                                                "_ltc_rpc_url": _ltc_rpc_url,
+                                                                                "_ltc_rpc_port": _ltc_rpc_port,
+                                                                                "_ltc_walletpassphrase": _ltc_walletpassphrase,
+                                                                                "_tor_url": _tor_url,
+                                                                                "_tor_port": _tor_port,
+                                                                                "_tor_control_port": _tor_control_port,
+                                                                                "_user_password": _user_password,
+                                                                            }
+                                                                        else:
+                                                                            _okBox = QMessageBox()
+                                                                            _okBox.setIcon(QMessageBox.Information)
+                                                                            _okBox.setWindowTitle("INFO")
+                                                                            _okBox.setStandardButtons(QMessageBox.Ok)
+                                                                            _okBox.setStyleSheet('color: white; background-color: red; font: bold')
+                                                                            _okBox.setText("< p align = 'center'>YOUR TANNHAUSER PASSWORDS DONT MATCH!</p>")
+                                                                            _res = _okBox.exec()
 
-            _tor_url, _input11 = QInputDialog.getText(self, "TOR URL","PLEASE ENTER THE TOR URL:", QLineEdit.Normal, "127.0.0.1")
-            _tor_port, _input12 = QInputDialog.getInt(self, "TOR PORT","PLEASE ENTER THE TOR PORT:", 2, 9050, 65000, 1)
-            _tor_control_port, _input13 = QInputDialog.getInt(self, "TOR CONTROL PORT","PLEASE ENTER THE TOR CONTROL PORT:", 2, 9051, 65000, 1)
+                                                                            # try again
+                                                                            self.save_user_data()
 
-            # collect it
-            self._user_data = {
-                "_btc_rpc_user": _btc_rpc_username,
-                "_btc_rpc_password": _btc_rpc_password,
-                "_btc_rpc_url": _btc_rpc_url,
-                "_btc_rpc_port": _btc_rpc_port,
-                "_btc_walletpassphrase": _btc_walletpassphrase,
-                "_ltc_rpc_user": _ltc_rpc_username,
-                "_ltc_rpc_password": _ltc_rpc_password,
-                "_ltc_rpc_url": _ltc_rpc_url,
-                "_ltc_rpc_port": _ltc_rpc_port,
-                "_ltc_walletpassphrase": _ltc_walletpassphrase,
-                "_tor_url": _tor_url,
-                "_tor_port": _tor_port,
-                "_tor_control_port": _tor_control_port
-            }
+                                                                        # save it
+                                                                        _save = utils.save_user_data(self._user_data)
 
-            # save it
-            _save = utils.save_user_data(self._user_data)
+                                                                        if _save:
+                                                                            self._user_tor_data = {
+                                                                                "tor_url": self._user_data['_tor_url'],
+                                                                                "tor_port": self._user_data['_tor_port'],
+                                                                                "tor_control_port": self._user_data['_tor_control_port']
+                                                                            }
 
-            if _save:
-                self._user_tor_data = {
-                    "tor_url": self._user_data['_tor_url'],
-                    "tor_port": self._user_data['_tor_port'],
-                    "tor_control_port": self._user_data['_tor_control_port']
-                }
+                                                                            self._user_btc_data = {
+                                                                                "btc_rpc_user": self._user_data['_btc_rpc_user'],
+                                                                                "btc_rpc_password": self._user_data['_btc_rpc_password'],
+                                                                                "btc_rpc_url": self._user_data['_btc_rpc_url'],
+                                                                                "btc_rpc_port": self._user_data['_btc_rpc_port'],
+                                                                                "btc_walletpassphrase": self._user_data['_btc_walletpassphrase'],
+                                                                            }
 
-                self._user_btc_data = {
-                    "btc_rpc_user": self._user_data['_btc_rpc_user'],
-                    "btc_rpc_password": self._user_data['_btc_rpc_password'],
-                    "btc_rpc_url": self._user_data['_btc_rpc_url'],
-                    "btc_rpc_port": self._user_data['_btc_rpc_port'],
-                    "btc_walletpassphrase": self._user_data['_btc_walletpassphrase'],
-                }
-
-                self._user_ltc_data = {
-                    "ltc_rpc_user": self._user_data['_ltc_rpc_user'],
-                    "ltc_rpc_password": self._user_data['_ltc_rpc_password'],
-                    "ltc_rpc_url": self._user_data['_ltc_rpc_url'],
-                    "ltc_rpc_port": self._user_data['_ltc_rpc_port'],
-                    "ltc_walletpassphrase": self._user_data['_ltc_walletpassphrase'],
-                }
+                                                                            self._user_ltc_data = {
+                                                                                "ltc_rpc_user": self._user_data['_ltc_rpc_user'],
+                                                                                "ltc_rpc_password": self._user_data['_ltc_rpc_password'],
+                                                                                "ltc_rpc_url": self._user_data['_ltc_rpc_url'],
+                                                                                "ltc_rpc_port": self._user_data['_ltc_rpc_port'],
+                                                                                "ltc_walletpassphrase": self._user_data['_ltc_walletpassphrase'],
+                                                                            }
+                                                                        else:
+                                                                            pass
+                                                                    else:
+                                                                        pass
+                                                                else:
+                                                                    pass
+                                                            else:
+                                                                pass
+                                                        else:
+                                                            pass
+                                                    else:
+                                                        pass
+                                                else:
+                                                    pass
+                                            else:
+                                                pass
+                                        else:
+                                            pass
+                                    else:
+                                        pass
+                                else:
+                                    pass
+                            else:
+                                pass
+                        else:
+                            pass
+                    else:
+                        pass
+                else:
+                    pass
             else:
                 pass
-
         except Exception as ex:
             print(ex)
 

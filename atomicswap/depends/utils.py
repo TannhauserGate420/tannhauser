@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
-import os, sysconfig, time, pickle
+import os, sysconfig, time, pickle, base54, json
+
 from atomicswap.depends.config import tannhauser
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 def save_wallet(filename, btc_address, ltc_address):
     try:
@@ -155,70 +159,78 @@ def load_bond(filename, path = False):
 
     return result
 
-def save_user_data(user_data):
+def save_user_data(data):
     try:
+        _password = data['_user_password'].encode('utf-8')
+        _data = json.dumps(data).encode('utf-8')
+
+        _kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = _password, iterations = 400000)
+        _key = base64.urlsafe_b64encode(_kdf.derive(_password))
+        _f = Fernet(_key)
+        _encrypted = _f.encrypt(_data)
+
+        # write encrypted
         _get_path = sysconfig.get_paths()
         _curr_path = _get_path['purelib']
         _filename = "saved_user_data"
-        _sd = open(f'{_curr_path}/atomicswap/depends/{_filename}', 'wb')
-        pickle.dump(user_data['_btc_rpc_user'], _sd)
-        pickle.dump(user_data['_btc_rpc_password'], _sd)
-        pickle.dump(user_data['_btc_rpc_url'], _sd)
-        pickle.dump(user_data['_btc_rpc_port'], _sd)
-        pickle.dump(user_data['_btc_walletpassphrase'], _sd)
-        pickle.dump(user_data['_ltc_rpc_user'], _sd)
-        pickle.dump(user_data['_ltc_rpc_password'], _sd)
-        pickle.dump(user_data['_ltc_rpc_url'], _sd)
-        pickle.dump(user_data['_ltc_rpc_port'], _sd)
-        pickle.dump(user_data['_ltc_walletpassphrase'], _sd)
-        pickle.dump(user_data['_tor_url'], _sd)
-        pickle.dump(user_data['_tor_port'], _sd)
-        pickle.dump(user_data['_tor_control_port'], _sd)
-        _sd.close()
+
+        with open(f'{_curr_path}/atomicswap/depends/{_filename}', 'wb') as _file:
+            _file.write(_encrypted)
 
         return True
     except Exception as ex:
         print(ex)
         return False
 
-def load_user_data():
+def load_user_data(passphrase):
     try:
+        _password = passphrase.encode('utf-8')
         _get_path = sysconfig.get_paths()
         _curr_path = _get_path['purelib']
         _filename = "saved_user_data"
-        _ld = open(f'{_curr_path}/atomicswap/depends/{_filename}', 'rb')
-        _btc_rpc_user = pickle.load(_ld)
-        _btc_rpc_password = pickle.load(_ld)
-        _btc_rpc_url = pickle.load(_ld)
-        _btc_rpc_port = pickle.load(_ld)
-        _btc_walletpassphrase = pickle.load(_ld)
-        _ltc_rpc_user = pickle.load(_ld)
-        _ltc_rpc_password = pickle.load(_ld)
-        _ltc_rpc_url = pickle.load(_ld)
-        _ltc_rpc_port = pickle.load(_ld)
-        _ltc_walletpassphrase = pickle.load(_ld)
-        _tor_url = pickle.load(_ld)
-        _tor_port = pickle.load(_ld)
-        _tor_control_port = pickle.load(_ld)
-        _ld.close()
 
-        res = {
-            '_btc_rpc_user': _btc_rpc_user,
-            '_btc_rpc_password': _btc_rpc_password,
-            '_btc_rpc_url': _btc_rpc_url,
-            '_btc_rpc_port': _btc_rpc_port,
-            '_btc_walletpassphrase': _btc_walletpassphrase,
-            '_ltc_rpc_user': _ltc_rpc_user,
-            '_ltc_rpc_password': _ltc_rpc_password,
-            '_ltc_rpc_url': _ltc_rpc_url,
-            '_ltc_rpc_port': _ltc_rpc_port,
-            '_ltc_walletpassphrase': _ltc_walletpassphrase,
-            '_tor_url': _tor_url,
-            '_tor_port': _tor_port,
-            '_tor_control_port': _tor_control_port
-        }
+        with open(f'{_curr_path}/atomicswap/depends/{_filename}', 'rb') as _file:
+            _encrypted = _file.read()
+
+            if _encrypted:
+                res = decrypt_user_file(_password, _encrypted)
+                
+                if res:
+                    pass
+                else:
+                    res = 'wrong password!'
+            else:
+                res = False
 
         return res
     except Exception as ex:
         print(ex)
         return False
+
+def decrypt_user_file(passphrase, encrypted_data):
+    try:
+        # decrypt file
+        _kdf = PBKDF2HMAC(algorithm = hashes.SHA256(), length = 32, salt = passphrase, iterations = 400000)
+        _key = base64.urlsafe_b64encode(_kdf.derive(passphrase))
+        _f = Fernet(_key)
+        _decrypted = _f.decrypt(encrypted_data)
+        res = json.loads(_decrypted.decode('utf-8'))
+
+        return res
+    except Exception as ex:
+        print(ex)
+        return False
+
+def check_user_file():
+    try:
+        _get_path = sysconfig.get_paths()
+        _curr_path = _get_path['purelib']
+        _filename = "saved_user_data"
+        _path = f'{_curr_path}/atomicswap/depends/{_filename}'
+        _file_exists = os.path.isfile(_path)
+
+        return _file_exists
+    except Exception as ex:
+        print(ex)
+        return False
+
