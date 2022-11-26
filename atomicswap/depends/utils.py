@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, sysconfig, time, pickle, base54, json
+import os, sysconfig, time, pickle, base64, json
 
 from atomicswap.depends.config import tannhauser
 from cryptography.fernet import Fernet
