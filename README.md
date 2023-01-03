@@ -156,6 +156,10 @@ tannhauser
 ![swap23](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap23.png)
 ![swap24](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/swap24.png)
 
+## Configuration
+
+![config](https://github.com/TannhauserGate420/tannhauser/blob/main/atomicswap/contrib/images/config.png)
+
 ## Notes
 
 **Tannhauser Gate  is a simple POC for an automatic atomic swap service. Tannhauser  is still in development mode - so use it at your own risk. For the Litecoin connection Tannhauser uses a customized version of python-bitcoinlib. There is a simple GUI as wrapper for easy handling. The GUI is a little bit guerrilla - but it does the job. So if you are a QT wizard - feel free to make a PR. The GUI uses a different (additional) library for RPC in contrast to the CLI. For some reason the GUI produces a broken pipe error at irregular intervals and I don't have time to look into it at the moment. The main goal of the development is a simple p2p client, where the user can be both maker and taker. Until then you can swap smaller amounts with Tannhauser. For Tannhauser there is a general refund window of 2 hours. Refunds for the user are possible after 1 hour or after 2 hours (Bond).**

@@ -11,9 +11,9 @@ with open(f"README.md", "r", encoding="utf-8") as readme:
     long_description: str = readme.read()
 
 setup(
-    name = "TannhauserGate",
+    name = tannhauser['name'],
     version = tannhauser['version'],
-    description = "PoC Cross Chain Atomic Swap",
+    description = "P2P Cross Chain Atomic Swap",
     long_description = long_description,
     long_description_content_type = "text/markdown",
     author = tannhauser['authors'],

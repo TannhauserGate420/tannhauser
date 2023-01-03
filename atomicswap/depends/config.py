@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 tannhauser = {
-    "name" : "Tannhauser Gate Atomic Swap Service",
-    "version" : "0.2.3 dev",
+    "name" : "TannhauserGate",
+    "version" : "0.2.5 dev",
     "authors" : ("iizegrim"),
-    "license" : "GPL3",
     "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion'],
+    "server_clear" : ['https://btcswap.net'],
     "request_timeout" : 20,
     "btc_network":"BTC",
     "ltc_network":"LTC",

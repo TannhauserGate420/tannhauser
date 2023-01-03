@@ -77,9 +77,26 @@ class RequestRunnable(QRunnable):
                         'status': False
                     }
         else:
-            _base_url = choice(tannhauser['server'])
-            _url = f'{_base_url}/{data}'
-            _res = requests.get(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+            _base_url = choice(tannhauser['server_clear'])
+            _url = f'{_base_url}{self._path}'
+
+            # set loop
+            _tries, _max_tries = 0, 5
+
+            while _tries <= _max_tries:
+                try:
+                    _res = requests.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+                    _res.close()
+                    _res = _res.json()
+                    break
+                except Exception as ex:
+                    print(ex)
+                    _tries += 1
+
+                    _res = {
+                        'type': 'server_online',
+                        'status': False
+                    }
 
         QThread.msleep(1000)
         QMetaObject.invokeMethod(self._dialog, "setData",
@@ -667,7 +684,7 @@ class MainWindow(QMainWindow):
 
         self.button2 = QPushButton("CONFIG")
         self.button2.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
-        self.button2.clicked.connect(self.save_user_data)
+        self.button2.clicked.connect(self.user_config)
 
         self.button4 = QPushButton("EXIT")
         self.button4.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
@@ -718,7 +735,7 @@ class MainWindow(QMainWindow):
         self._user_data = self.load_user_data()
 
         if not self._user_data:
-            self._user_data = self.save_user_data(True)
+            self._user_data = self.user_config(True)
         elif self._user_data == 'wrong password!':
             _okBox = QMessageBox()
             _okBox.setIcon(QMessageBox.Information)
@@ -729,6 +746,7 @@ class MainWindow(QMainWindow):
             _res = _okBox.exec()
         else:
             self._user_tor_data = {
+                "use_tor": self._user_data['_use_tor'],
                 "tor_url": self._user_data['_tor_url'],
                 "tor_port": self._user_data['_tor_port'],
                 "tor_control_port": self._user_data['_tor_control_port']
@@ -778,7 +796,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
 
         # call request
-        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'])
+        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'], self._user_tor_data['use_tor'])
         QThreadPool.globalInstance().start(runnable)
 
     def load_server(self):
@@ -2664,7 +2682,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
 
         # call request
-        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'])
+        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'], self._user_tor_data['use_tor'])
         QThreadPool.globalInstance().start(runnable)
 
     def start_loop(self):
@@ -2733,7 +2751,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
 
         # call request
-        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'])
+        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'], self._user_tor_data['use_tor'])
         QThreadPool.globalInstance().start(runnable)
 
     def send_swap_data(self):
@@ -2783,7 +2801,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
 
         # call request
-        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'])
+        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'], self._user_tor_data['use_tor'])
         QThreadPool.globalInstance().start(runnable)
 
     def new_swap_data(self):
@@ -2811,7 +2829,7 @@ class MainWindow(QMainWindow):
         self.spinner.start()
 
         # call request
-        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'])
+        runnable = RequestRunnable(self, _path, self._user_tor_data['tor_url'], self._user_tor_data['tor_port'], self._user_tor_data['tor_control_port'], self._user_tor_data['use_tor'])
         QThreadPool.globalInstance().start(runnable)
 
     def get_amount(self):
@@ -2874,141 +2892,344 @@ class MainWindow(QMainWindow):
             print(ex)
             return False
 
-    def save_user_data(self, first_time_user = False):
-        try:
-            if first_time_user:
-                _okBox = QMessageBox()
-                _okBox.setIcon(QMessageBox.Information)
-                _okBox.setWindowTitle("INFO")
-                _okBox.setStandardButtons(QMessageBox.Ok)
-                _okBox.setStyleSheet('color: white; background-color: green; font: bold')
-                _okBox.setText("< p align = 'center'>HELLO FIRST TIME USER! THIS CLIENT USE BITCOIN/LITECOIN-CORE AND TOR FOR ANONYMOUS COMMUNICATION. PLEASE ENTER YOUR DATA AT THE NEXT WINDOWS. YOU WILL NEED YOUR RPCUSER/RPCPASSWORD/WALLETPASSPHRASE FOR YOUR BITCOIN AND LITECOIN INSTANCES. IF YOU DONT KNOW YOUR DATA (URL/PORTS), USE THE DEFAULT VALUES. THANKS!</p>")
-                _res = _okBox.exec()
+    def user_config(self, first_time_user = False):
+        # set font size
+        _font_size = 10
+
+        if first_time_user:
+            _okBox = QMessageBox()
+            _okBox.setIcon(QMessageBox.Information)
+            _okBox.setWindowTitle("INFO")
+            _okBox.setStandardButtons(QMessageBox.Ok)
+            _okBox.setStyleSheet('color: white; background-color: green; font: bold')
+            _okBox.setText("< p align = 'center'>HELLO FIRST TIME USER! THIS CLIENT USE BITCOIN/LITECOIN-CORE AND TOR FOR ANONYMOUS COMMUNICATION. PLEASE ENTER YOUR DATA AT THE NEXT WINDOWS. YOU WILL NEED YOUR RPCUSER/RPCPASSWORD/WALLETPASSPHRASE FOR YOUR BITCOIN AND LITECOIN INSTANCES. IF YOU DONT KNOW YOUR DATA (URL/PORTS), USE THE DEFAULT VALUES. THANKS!</p>")
+            _res = _okBox.exec()
+        else:
+            pass
+
+        # bitcoin dep
+        self._label1 = QLabel('bitcoin rpc user: '.upper())
+        font = self._label1.font()
+        font.setPointSize(_font_size)
+        self._label1.setFont(font)
+        self._label1.setStyleSheet("color: #E5E5E5")
+        self._label1.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line1 = QLineEdit(self)
+        self._line1.setEchoMode(QLineEdit.Normal)
+        font = self._line1.font()
+        font.setPointSize(_font_size)
+        self._line1.setFont(font)
+
+        self._label2 = QLabel('bitcoin rpc password: '.upper())
+        font = self._label2.font()
+        font.setPointSize(_font_size)
+        self._label2.setFont(font)
+        self._label2.setStyleSheet("color: #E5E5E5")
+        self._label2.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line2 = QLineEdit(self)
+        self._line2.setEchoMode(QLineEdit.Password)
+        font = self._line2.font()
+        font.setPointSize(_font_size)
+        self._line2.setFont(font)
+
+        self._label3 = QLabel('bitcoin rpc url: '.upper())
+        font = self._label3.font()
+        font.setPointSize(_font_size)
+        self._label3.setFont(font)
+        self._label3.setStyleSheet("color: #E5E5E5")
+        self._label3.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line3 = QLineEdit('127.0.0.1', self)
+        self._line3.setEchoMode(QLineEdit.Normal)
+        font = self._line3.font()
+        font.setPointSize(_font_size)
+        self._line3.setFont(font)
+
+        self._label4 = QLabel('bitcoin rpc port: '.upper())
+        font = self._label4.font()
+        font.setPointSize(_font_size)
+        self._label4.setFont(font)
+        self._label4.setStyleSheet("color: #E5E5E5")
+        self._label4.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line4 = QLineEdit('8332', self)
+        self._line4.setEchoMode(QLineEdit.Normal)
+        font = self._line4.font()
+        font.setPointSize(_font_size)
+        self._line4.setFont(font)
+
+        self._label5 = QLabel('bitcoin wallet passphrase: '.upper())
+        font = self._label5.font()
+        font.setPointSize(_font_size)
+        self._label5.setFont(font)
+        self._label5.setStyleSheet("color: #E5E5E5")
+        self._label5.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line5 = QLineEdit(self)
+        self._line5.setEchoMode(QLineEdit.Password)
+        font = self._line5.font()
+        font.setPointSize(_font_size)
+        self._line5.setFont(font)
+
+        # litecoin dep
+        self._label6 = QLabel('litecoin rpc user: '.upper())
+        font = self._label6.font()
+        font.setPointSize(_font_size)
+        self._label6.setFont(font)
+        self._label6.setStyleSheet("color: #E5E5E5")
+        self._label6.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line6 = QLineEdit(self)
+        self._line6.setEchoMode(QLineEdit.Normal)
+        font = self._line6.font()
+        font.setPointSize(_font_size)
+        self._line6.setFont(font)
+
+        self._label7 = QLabel('litecoin rpc password: '.upper())
+        font = self._label7.font()
+        font.setPointSize(_font_size)
+        self._label7.setFont(font)
+        self._label7.setStyleSheet("color: #E5E5E5")
+        self._label7.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line7 = QLineEdit(self)
+        self._line7.setEchoMode(QLineEdit.Password)
+        font = self._line2.font()
+        font.setPointSize(_font_size)
+        self._line7.setFont(font)
+
+        self._label8 = QLabel('litecoin rpc url: '.upper())
+        font = self._label8.font()
+        font.setPointSize(_font_size)
+        self._label8.setFont(font)
+        self._label8.setStyleSheet("color: #E5E5E5")
+        self._label8.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line8 = QLineEdit('127.0.0.1', self)
+        self._line8.setEchoMode(QLineEdit.Normal)
+        font = self._line8.font()
+        font.setPointSize(_font_size)
+        self._line8.setFont(font)
+
+        self._label9 = QLabel('litecoin rpc port: '.upper())
+        font = self._label9.font()
+        font.setPointSize(_font_size)
+        self._label9.setFont(font)
+        self._label9.setStyleSheet("color: #E5E5E5")
+        self._label9.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line9 = QLineEdit('9332', self)
+        self._line9.setEchoMode(QLineEdit.Normal)
+        font = self._line9.font()
+        font.setPointSize(_font_size)
+        self._line9.setFont(font)
+
+        self._label10 = QLabel('litecoin wallet passphrase: '.upper())
+        font = self._label10.font()
+        font.setPointSize(_font_size)
+        self._label10.setFont(font)
+        self._label10.setStyleSheet("color: #E5E5E5")
+        self._label10.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line10 = QLineEdit(self)
+        self._line10.setEchoMode(QLineEdit.Password)
+        font = self._line10.font()
+        font.setPointSize(_font_size)
+        self._line10.setFont(font)
+
+        # tor dep
+        self._label99 = QLabel('use tor: '.upper())
+        font = self._label99.font()
+        font.setPointSize(_font_size)
+        self._label99.setFont(font)
+        self._label99.setStyleSheet("color: #E5E5E5")
+        self._label99.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line99 = QCheckBox(self)
+        self._line99.setChecked(True)
+
+        self._label11 = QLabel('tor url: '.upper())
+        font = self._label11.font()
+        font.setPointSize(_font_size)
+        self._label11.setFont(font)
+        self._label11.setStyleSheet("color: #E5E5E5")
+        self._label11.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line11 = QLineEdit('127.0.0.1', self)
+        self._line11.setEchoMode(QLineEdit.Normal)
+        font = self._line11.font()
+        font.setPointSize(_font_size)
+        self._line11.setFont(font)
+
+        self._label12 = QLabel('tor port: '.upper())
+        font = self._label12.font()
+        font.setPointSize(_font_size)
+        self._label12.setFont(font)
+        self._label12.setStyleSheet("color: #E5E5E5")
+        self._label12.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line12 = QLineEdit('9050', self)
+        self._line12.setEchoMode(QLineEdit.Normal)
+        font = self._line12.font()
+        font.setPointSize(_font_size)
+        self._line12.setFont(font)
+
+        self._label13 = QLabel('tor control port: '.upper())
+        font = self._label13.font()
+        font.setPointSize(_font_size)
+        self._label13.setFont(font)
+        self._label13.setStyleSheet("color: #E5E5E5")
+        self._label13.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line13 = QLineEdit('9051', self)
+        self._line13.setEchoMode(QLineEdit.Normal)
+        font = self._line13.font()
+        font.setPointSize(_font_size)
+        self._line13.setFont(font)
+
+        # tannhauser dep
+        self._label14 = QLabel('tannhauser password: '.upper())
+        font = self._label14.font()
+        font.setPointSize(_font_size)
+        self._label14.setFont(font)
+        self._label14.setStyleSheet("color: #E5E5E5")
+        self._label14.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line14 = QLineEdit(self)
+        self._line14.setEchoMode(QLineEdit.Password)
+        font = self._line14.font()
+        font.setPointSize(_font_size)
+        self._line14.setFont(font)
+
+        self._label15 = QLabel('repeat password: '.upper())
+        font = self._label15.font()
+        font.setPointSize(_font_size)
+        self._label15.setFont(font)
+        self._label15.setStyleSheet("color: #E5E5E5")
+        self._label15.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+        self._line15 = QLineEdit(self)
+        self._line15.setEchoMode(QLineEdit.Password)
+        font = self._line15.font()
+        font.setPointSize(_font_size)
+        self._line15.setFont(font)
+
+        self.button2 = QPushButton("Save")
+        self.button2.setStyleSheet('color: white; background-color: darkgreen; font: bold; padding: 0.3em')
+        self.button2.clicked.connect(self.comp_user_data)
+
+        self.button4 = QPushButton("Exit")
+        self.button4.setStyleSheet('color: white; background-color: darkred; font: bold; padding: 0.3em')
+        self.button4.clicked.connect(lambda: self.close())
+
+        layout = QGridLayout()
+        layout.addWidget(self._label1, 1, 0)
+        layout.addWidget(self._line1, 1, 1, 1, 2)
+        layout.addWidget(self._label2, 2, 0)
+        layout.addWidget(self._line2, 2, 1, 1, 2)
+        layout.addWidget(self._label3, 3, 0)
+        layout.addWidget(self._line3, 3, 1, 1, 2)
+        layout.addWidget(self._label4, 4, 0)
+        layout.addWidget(self._line4, 4, 1, 1, 2)
+        layout.addWidget(self._label5, 5, 0)
+        layout.addWidget(self._line5, 5, 1, 1, 2)
+        layout.addWidget(self._label6, 6, 0)
+        layout.addWidget(self._line6, 6, 1, 1, 2)
+        layout.addWidget(self._label7, 7, 0)
+        layout.addWidget(self._line7, 7, 1, 1, 2)
+        layout.addWidget(self._label8, 8, 0)
+        layout.addWidget(self._line8, 8, 1, 1, 2)
+        layout.addWidget(self._label9, 9, 0)
+        layout.addWidget(self._line9, 9, 1, 1, 2)
+        layout.addWidget(self._label10, 10, 0)
+        layout.addWidget(self._line10, 10, 1, 1, 2)
+        layout.addWidget(self._label99, 11, 0)
+        layout.addWidget(self._line99, 11, 1)
+        layout.addWidget(self._label11, 12, 0)
+        layout.addWidget(self._line11, 12, 1, 1, 2)
+        layout.addWidget(self._label12, 13, 0)
+        layout.addWidget(self._line12, 13, 1, 1, 2)
+        layout.addWidget(self._label13, 14, 0)
+        layout.addWidget(self._line13, 14, 1, 1, 2)
+        layout.addWidget(self._label14, 15, 0)
+        layout.addWidget(self._line14, 15, 1, 1, 2)
+        layout.addWidget(self._label15, 16, 0)
+        layout.addWidget(self._line15, 16, 1, 1, 2)
+        layout.addWidget(self.button2, 17, 1)
+        layout.addWidget(self.button4, 17, 2)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+
+    def comp_user_data(self):
+        # ckeck pwd
+        if self._line14.text() and not self._line14.text().isspace() and self._line15.text() and not self._line15.text().isspace() and self._line14.text() == self._line15.text():
+            # collect it
+            self._user_data = {
+                "_btc_rpc_user": self._line1.text(),
+                "_btc_rpc_password": self._line2.text(),
+                "_btc_rpc_url": self._line3.text(),
+                "_btc_rpc_port": self._line4.text(),
+                "_btc_walletpassphrase": self._line5.text(),
+                "_ltc_rpc_user": self._line6.text(),
+                "_ltc_rpc_password": self._line7.text(),
+                "_ltc_rpc_url": self._line8.text(),
+                "_ltc_rpc_port": self._line9.text(),
+                "_ltc_walletpassphrase": self._line10.text(),
+                "_use_tor": self._line99.isChecked(),
+                "_tor_url": self._line11.text(),
+                "_tor_port": self._line12.text(),
+                "_tor_control_port": self._line13.text(),
+                "_user_password": self._line14.text(),
+            }
+
+            # save it
+            _save = utils.save_user_data(self._user_data)
+
+            if _save:
+                self._user_tor_data = {
+                    "use_tor": self._user_data['_use_tor'],
+                    "tor_url": self._user_data['_tor_url'],
+                    "tor_port": self._user_data['_tor_port'],
+                    "tor_control_port": self._user_data['_tor_control_port']
+                }
+
+                self._user_btc_data = {
+                    "btc_rpc_user": self._user_data['_btc_rpc_user'],
+                    "btc_rpc_password": self._user_data['_btc_rpc_password'],
+                    "btc_rpc_url": self._user_data['_btc_rpc_url'],
+                    "btc_rpc_port": self._user_data['_btc_rpc_port'],
+                    "btc_walletpassphrase": self._user_data['_btc_walletpassphrase'],
+                }
+
+                self._user_ltc_data = {
+                    "ltc_rpc_user": self._user_data['_ltc_rpc_user'],
+                    "ltc_rpc_password": self._user_data['_ltc_rpc_password'],
+                    "ltc_rpc_url": self._user_data['_ltc_rpc_url'],
+                    "ltc_rpc_port": self._user_data['_ltc_rpc_port'],
+                    "ltc_walletpassphrase": self._user_data['_ltc_walletpassphrase'],
+                }
             else:
                 pass
 
-            _btc_rpc_username, _input1 = QInputDialog.getText(self, "BITCOIN RPC USER","PLEASE ENTER THE BITCOIN RPC USER:", QLineEdit.Normal, "YOUR BITCOIN RPC USERNAME")
-            if _input1 and _btc_rpc_username and not _btc_rpc_username.isspace():
-                _btc_rpc_password, _input2 = QInputDialog.getText(self, "BITCOIN RPC PASSWORD","PLEASE ENTER THE BITCOIN RPC PASSWORD:", QLineEdit.Password, "RPC PASSWORD")
-                if _input2 and _btc_rpc_password and not _btc_rpc_password.isspace():
-                    _btc_rpc_url, _input3 = QInputDialog.getText(self, "BITCOIN RPC URL","PLEASE ENTER THE BITCOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
-                    if _input3 and _btc_rpc_url and not _btc_rpc_url.isspace():
-                        _btc_rpc_port, _input4 = QInputDialog.getInt(self, "BITCOIN CORE PORT","PLEASE ENTER THE BITCOIN PORT:", 2, 8332, 65000, 1)
-                        if _input4 and _btc_rpc_port:
-                            _btc_walletpassphrase, _input5 = QInputDialog.getText(self, "BITCOIN WALLET PASSPHRASE","PLEASE ENTER YOUR BITCOIN WALLET PASSPHRASE:", QLineEdit.Password, "WALLET PASSPHRASE")
-                            if _input5 and _btc_walletpassphrase and not _btc_walletpassphrase.isspace():
-                                _ltc_rpc_username, _input6 = QInputDialog.getText(self, "LITECOIN RPC USER","PLEASE ENTER THE LITECOIN RPC USER:", QLineEdit.Normal, "YOUR LITECOIN RPC USERNAME")
-                                if _input6 and _ltc_rpc_username and not _ltc_rpc_username.isspace():
-                                    _ltc_rpc_password, _input7 = QInputDialog.getText(self, "LITECOIN RPC PASSWORD","PLEASE ENTER THE LITECOIN RPC PASSWORD:", QLineEdit.Password, "RPC PASSWORD")
-                                    if _input7 and _ltc_rpc_password and not _ltc_rpc_password.isspace():
-                                        _ltc_rpc_url, _input8 = QInputDialog.getText(self, "LITECOIN RPC URL","PLEASE ENTER THE LITECOIN RPC URL:", QLineEdit.Normal, "127.0.0.1")
-                                        if _input8 and _ltc_rpc_url and not _ltc_rpc_url.isspace():
-                                            _ltc_rpc_port, _input9 = QInputDialog.getInt(self, "LITECOIN CORE PORT","PLEASE ENTER THE LITECOIN RPC PORT:", 2, 9332, 65000, 1)
-                                            if _input9 and _ltc_rpc_port:
-                                                _ltc_walletpassphrase, _input10 = QInputDialog.getText(self, "LITECOIN WALLET PASSPHRASE","PLEASE ENTER THE LITECOIN WALLET PASSPHRASE:", QLineEdit.Password, "WALLET PASSPHRASE")
-                                                if _input10 and _ltc_walletpassphrase and not _ltc_walletpassphrase.isspace():
-                                                    _tor_url, _input11 = QInputDialog.getText(self, "TOR URL","PLEASE ENTER THE TOR URL:", QLineEdit.Normal, "127.0.0.1")
-                                                    if _input11 and _tor_url and not _tor_url.isspace():
-                                                        _tor_port, _input12 = QInputDialog.getInt(self, "TOR PORT","PLEASE ENTER THE TOR PORT:", 2, 9050, 65000, 1)
-                                                        if _input12 and _tor_port:
-                                                            _tor_control_port, _input13 = QInputDialog.getInt(self, "TOR CONTROL PORT","PLEASE ENTER THE TOR CONTROL PORT:", 2, 9051, 65000, 1)
-                                                            if _input13 and _tor_control_port:
-                                                                _user_password, _input14 = QInputDialog.getText(self, "YOUR TANNHAUSER PASSWORD","PLEASE ENTER YOUR TANNHAUSER PASSWORD:", QLineEdit.Password, "TANNHAUSER PASSWORD")
-                                                                if _input14 and _user_password and not _user_password.isspace():
-                                                                    _user_password_verify, _input15 = QInputDialog.getText(self, "REPEAT YOUR TANNHAUSER PASSWORD","PLEASE REPEAT YOUR TANNHAUSER PASSWORD:", QLineEdit.Password, "TANNHAUSER PASSWORD")
-                                                                    if _input15 and _user_password_verify and not _user_password_verify.isspace():
-                                                                        # check passphrase
-                                                                        _verify_ok = True if _user_password == _user_password_verify else False
+            # reload
+            self.close()
+            window = MainWindow()
+            window.show()
+        else:
+            _okBox = QMessageBox()
+            _okBox.setIcon(QMessageBox.Information)
+            _okBox.setWindowTitle("INFO")
+            _okBox.setStandardButtons(QMessageBox.Ok)
+            _okBox.setStyleSheet('color: white; background-color: red; font: bold')
+            _okBox.setText("< p align = 'center'>YOUR TANNHAUSER PASSWORDS DONT MATCH!</p>")
+            _res = _okBox.exec()
 
-                                                                        if _verify_ok:
-                                                                            # collect it
-                                                                            self._user_data = {
-                                                                                "_btc_rpc_user": _btc_rpc_username,
-                                                                                "_btc_rpc_password": _btc_rpc_password,
-                                                                                "_btc_rpc_url": _btc_rpc_url,
-                                                                                "_btc_rpc_port": _btc_rpc_port,
-                                                                                "_btc_walletpassphrase": _btc_walletpassphrase,
-                                                                                "_ltc_rpc_user": _ltc_rpc_username,
-                                                                                "_ltc_rpc_password": _ltc_rpc_password,
-                                                                                "_ltc_rpc_url": _ltc_rpc_url,
-                                                                                "_ltc_rpc_port": _ltc_rpc_port,
-                                                                                "_ltc_walletpassphrase": _ltc_walletpassphrase,
-                                                                                "_tor_url": _tor_url,
-                                                                                "_tor_port": _tor_port,
-                                                                                "_tor_control_port": _tor_control_port,
-                                                                                "_user_password": _user_password,
-                                                                            }
-                                                                        else:
-                                                                            _okBox = QMessageBox()
-                                                                            _okBox.setIcon(QMessageBox.Information)
-                                                                            _okBox.setWindowTitle("INFO")
-                                                                            _okBox.setStandardButtons(QMessageBox.Ok)
-                                                                            _okBox.setStyleSheet('color: white; background-color: red; font: bold')
-                                                                            _okBox.setText("< p align = 'center'>YOUR TANNHAUSER PASSWORDS DONT MATCH!</p>")
-                                                                            _res = _okBox.exec()
-
-                                                                            # try again
-                                                                            self.save_user_data()
-
-                                                                        # save it
-                                                                        _save = utils.save_user_data(self._user_data)
-
-                                                                        if _save:
-                                                                            self._user_tor_data = {
-                                                                                "tor_url": self._user_data['_tor_url'],
-                                                                                "tor_port": self._user_data['_tor_port'],
-                                                                                "tor_control_port": self._user_data['_tor_control_port']
-                                                                            }
-
-                                                                            self._user_btc_data = {
-                                                                                "btc_rpc_user": self._user_data['_btc_rpc_user'],
-                                                                                "btc_rpc_password": self._user_data['_btc_rpc_password'],
-                                                                                "btc_rpc_url": self._user_data['_btc_rpc_url'],
-                                                                                "btc_rpc_port": self._user_data['_btc_rpc_port'],
-                                                                                "btc_walletpassphrase": self._user_data['_btc_walletpassphrase'],
-                                                                            }
-
-                                                                            self._user_ltc_data = {
-                                                                                "ltc_rpc_user": self._user_data['_ltc_rpc_user'],
-                                                                                "ltc_rpc_password": self._user_data['_ltc_rpc_password'],
-                                                                                "ltc_rpc_url": self._user_data['_ltc_rpc_url'],
-                                                                                "ltc_rpc_port": self._user_data['_ltc_rpc_port'],
-                                                                                "ltc_walletpassphrase": self._user_data['_ltc_walletpassphrase'],
-                                                                            }
-                                                                        else:
-                                                                            pass
-                                                                    else:
-                                                                        pass
-                                                                else:
-                                                                    pass
-                                                            else:
-                                                                pass
-                                                        else:
-                                                            pass
-                                                    else:
-                                                        pass
-                                                else:
-                                                    pass
-                                            else:
-                                                pass
-                                        else:
-                                            pass
-                                    else:
-                                        pass
-                                else:
-                                    pass
-                            else:
-                                pass
-                        else:
-                            pass
-                    else:
-                        pass
-                else:
-                    pass
-            else:
-                pass
-        except Exception as ex:
-            print(ex)
+            # try again
+            self.user_config()
 
     def main(self):
         # pause hint
