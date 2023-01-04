@@ -2,10 +2,10 @@
 
 tannhauser = {
     "name" : "TannhauserGate",
-    "version" : "0.2.5 dev",
+    "version" : "0.2.6 dev",
     "authors" : ("iizegrim"),
     "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion'],
-    "server_clear" : ['https://btcswap.net'],
+    "server_clear" : ['https://btcswap.net:30443'],
     "request_timeout" : 20,
     "btc_network":"BTC",
     "ltc_network":"LTC",
