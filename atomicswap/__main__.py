@@ -45,58 +45,39 @@ class RequestRunnable(QRunnable):
             else:
                 pass
 
-            _base_url = choice(tannhauser['server'])
-            _url = f'{_base_url}{self._path}'
+            _url_onion = choice(tannhauser['server'])
+            _url_clear = choice(tannhauser['server_clear'])
 
-            # set loop
-            _tries, _max_tries = 0, 5
+            try:
+                _url = f'{_url_onion}{self._path}'
+                _session = requests.session()
+                _session.proxies = {}
+                _session.proxies['http'] = f"socks5h://{self._tor_url}:{self._tor_port}"
+                _res = _session.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+                _res.close()
+                _res = _res.json()
+            except Exception as ex:
+                print(ex)
 
-            while _tries <= _max_tries:
                 try:
-                    _session = requests.session()
-                    _session.proxies = {}
-                    _session.proxies['http'] = f"socks5h://{self._tor_url}:{self._tor_port}"
-                    _res = _session.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+                    _url = f'{_url_clear}{self._path}'
+                    _res = requests.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
                     _res.close()
                     _res = _res.json()
-                    break
                 except Exception as ex:
                     print(ex)
-
-                    _tries += 1
-                    if _tries >= 2:
-                        with Controller.from_port(port = self._tor_control_port) as controller:
-                            controller.authenticate()
-                            controller.signal(Signal.NEWNYM)
-                        time.sleep(2)
-                    else:
-                        pass
-
-                    _res = {
-                        'type': 'server_online',
-                        'status': False
-                    }
+                    _res = {'type': 'server_online', 'status': False}
         else:
             _base_url = choice(tannhauser['server_clear'])
             _url = f'{_base_url}{self._path}'
 
-            # set loop
-            _tries, _max_tries = 0, 5
-
-            while _tries <= _max_tries:
-                try:
-                    _res = requests.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
-                    _res.close()
-                    _res = _res.json()
-                    break
-                except Exception as ex:
-                    print(ex)
-                    _tries += 1
-
-                    _res = {
-                        'type': 'server_online',
-                        'status': False
-                    }
+            try:
+                _res = requests.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+                _res.close()
+                _res = _res.json()
+            except Exception as ex:
+                print(ex)
+                _res = {'type': 'server_online', 'status': False}
 
         QThread.msleep(1000)
         QMetaObject.invokeMethod(self._dialog, "setData",
