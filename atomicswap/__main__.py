@@ -58,10 +58,12 @@ class RequestRunnable(QRunnable):
                 _res = _res.json()
             except Exception as ex:
                 print(ex)
-
                 try:
                     _url = f'{_url_clear}{self._path}'
-                    _res = requests.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
+                    _session = requests.session()
+                    _session.proxies = {}
+                    _session.proxies['http'] = f"socks5h://{self._tor_url}:{self._tor_port}"
+                    _res = _session.post(url = _url, headers = _headers, timeout = tannhauser['request_timeout'])
                     _res.close()
                     _res = _res.json()
                 except Exception as ex:
