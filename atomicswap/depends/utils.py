@@ -85,7 +85,7 @@ def load_user_swap(filename):
 
     return res
 
-def save_bond(filename, swap_token, sender_address, server_address, htlc_address, refund_blockheight, btc_amount, btc_send_fund, secret_hash_hex, redeem_script, conter_address, swap_amount, server_amount, finalized = False):
+def save_bond(filename, swap_token, sender_address, server_address, htlc_address, refund_blockheight, btc_amount, btc_send_fund, secret_hash_hex, redeem_script, conter_address, swap_amount, server_amount, direction, finalized = False):
     try:
         _get_path = sysconfig.get_paths()
         _curr_path = _get_path['purelib']
@@ -103,6 +103,7 @@ def save_bond(filename, swap_token, sender_address, server_address, htlc_address
         pickle.dump(conter_address, _sw)
         pickle.dump(swap_amount, _sw)
         pickle.dump(server_amount, _sw)
+        pickle.dump(direction, _sw)
         pickle.dump(finalized, _sw)
         _sw.close()
 
@@ -134,6 +135,7 @@ def load_bond(filename, path = False):
         _conter_address = pickle.load(_lswp)
         _swap_amount = pickle.load(_lswp)
         _server_amount = pickle.load(_lswp)
+        _direction = pickle.load(_lswp)
         _finalized = pickle.load(_lswp)
         _lswp.close()
 
@@ -151,6 +153,7 @@ def load_bond(filename, path = False):
             'conter_address': _conter_address,
             'swap_amount': _swap_amount,
             'server_amount': _server_amount,
+            'direction': _direction,
             'finalized': _finalized
         }
     except Exception as ex:
@@ -194,7 +197,7 @@ def load_user_data(passphrase):
 
             if _encrypted:
                 res = decrypt_user_file(_password, _encrypted)
-                
+
                 if res:
                     pass
                 else:
@@ -233,4 +236,3 @@ def check_user_file():
     except Exception as ex:
         print(ex)
         return False
-

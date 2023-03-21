@@ -110,6 +110,11 @@ class Output(QWidget):
         self.btc_logo.setAlignment(Qt.AlignCenter)
         self.btc_logo.setPixmap(QPixmap(f"{self._curr_path}/atomicswap/contrib/images/btc.png").scaled(300,300))
 
+        self.btc_logo_tmp = QLabel('BTC')
+        self.btc_logo_tmp.setStyleSheet("color: blue; font: bold")
+        self.btc_logo_tmp.setAlignment(Qt.AlignCenter)
+        self.btc_logo_tmp.setPixmap(QPixmap(f"{self._curr_path}/atomicswap/contrib/images/btc.png").scaled(300,300))
+
         self.ltc_logo = QLabel('LTC')
         self.ltc_logo.setStyleSheet("color: blue; font: bold")
         self.ltc_logo.setAlignment(Qt.AlignCenter)
@@ -223,6 +228,30 @@ class Output(QWidget):
             layout.addWidget(self.header, 0, 0, 1, 0)
             layout.addWidget(self.btc_logo, 1, 0)
             layout.addWidget(self.ltc_logo, 1, 1)
+            layout.addWidget(self.swp_data1, 2, 0)
+            layout.addWidget(self.swp_data2, 2, 1)
+            self.setLayout(layout)
+        elif self.swap_data[0] == 'btcbtc':
+            self.swp_data1 = QLabel('YOU WILL SEND (BTC): \n YOUR BOND (BTC): \n YOU WILL RECEIVE (BTC): \n YOUR BOND HTLC ADDRESS: \n CURRENT BLOCKHEIGHT: \n YOUR REFUND BLOCKHEIGHT (~2h): \n NETWORK FEE (SATS):')
+            font = self.swp_data1.font()
+            font.setPointSize(12)
+            self.swp_data1.setFont(font)
+            self.swp_data1.setStyleSheet("color: #E5E5E5")
+            self.swp_data1.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
+
+            _data = f" {self.swap_data[9]:,}\n {self.swap_data[11]:,}\n {self.swap_data[12]:,}\n {self.swap_data[6]}\n {self.swap_data[8]:,}\n {self.swap_data[7]:,}\n {self.swap_data[5]}"
+            self.swp_data2 = QLabel(_data)
+            font = self.swp_data2.font()
+            font.setPointSize(12)
+            self.swp_data2.setFont(font)
+            self.swp_data2.setStyleSheet("color: lightgreen;")
+            self.swp_data2.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+            self.swp_data2.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
+            layout = QGridLayout()
+            layout.addWidget(self.header, 0, 0, 1, 0)
+            layout.addWidget(self.btc_logo, 1, 0)
+            layout.addWidget(self.btc_logo_tmp, 1, 1)
             layout.addWidget(self.swp_data1, 2, 0)
             layout.addWidget(self.swp_data2, 2, 1)
             self.setLayout(layout)
@@ -342,7 +371,7 @@ class Output(QWidget):
         self.q4.setAlignment(Qt.AlignLeft)
         self.q4.setWordWrap(True)
 
-        self.q5 = QLabel('Q: Why Bitcoin and Litecoin?\nA: Beside obvious reasons like rank/marketcap - we have somewhere to start. More coins (and tokens at the ETH blockchain) will follow soon (ETH, DASH, DOGE, ZCASH).\n')
+        self.q5 = QLabel('Q: Why Bitcoin and Litecoin?\nA: Beside obvious reasons like rank/marketcap - we have somewhere to start. More coins (POW ONLY!) will follow soon (DASH, DOGE, ZCASH).\n')
         font = self.q5.font()
         font.setPointSize(11)
         self.q5.setFont(font)
@@ -434,12 +463,7 @@ class Output(QWidget):
         _loaded_data = self._check_swap_data['load_bond_transaction']
         _server_data = self._check_swap_data['check_server_data']
         _bond_amount_btc = round(float(_loaded_data['amount'] / tannhauser['unit']), 8)
-
-        # temp trick - todo: set direction at main
-        if tannhauser['net'] == 'testnet':
-            _direction = 'btc' if _loaded_data['htlc_address'].startswith('2') else 'ltc'
-        else:
-            _direction = 'btc' if _loaded_data['htlc_address'].startswith('3') else 'ltc'
+        _direction = _loaded_data['direction']
 
         try:
             _loaded_swap_data = self._check_swap_data['load_swap_transaction']
@@ -638,6 +662,9 @@ class Output(QWidget):
         if _direction == 'btc':
             layout.addWidget(self.btc_logo, 1, 0)
             layout.addWidget(self.ltc_logo, 1, 1)
+        elif _direction == 'btcbtc':
+            layout.addWidget(self.btc_logo, 1, 0)
+            layout.addWidget(self.btc_logo_tmp, 1, 1)
         else:
             layout.addWidget(self.btc_logo, 1, 1)
             layout.addWidget(self.ltc_logo, 1, 0)
@@ -786,6 +813,9 @@ class MainWindow(QMainWindow):
         # output buttons
         self.output_main_buttons()
 
+        # check version
+        _check_version = True if self._ping_server['version'] > tannhauser['version'] else False
+
         # layout
         layout = QGridLayout()
         layout.addWidget(Output(output_stats = True, server_status = self._ping_server), 0, 0, 1, 0)
@@ -797,6 +827,17 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
+        if _check_version:
+            _okBox = QMessageBox()
+            _okBox.setIcon(QMessageBox.Information)
+            _okBox.setWindowTitle("INFO")
+            _okBox.setStandardButtons(QMessageBox.Ok)
+            _okBox.setStyleSheet('color: white; background-color: red; font: bold')
+            _okBox.setText(f"<p align = 'center'> NEW VERSION ({self._ping_server['version']}) AVAILABLE<br><br>pip install TannhauserGate </p>")
+            _res = _okBox.exec()
+        else:
+            pass
 
     def load_server_offline(self):
         # output buttons
@@ -1039,8 +1080,10 @@ class MainWindow(QMainWindow):
         self._direction = self.get_direction()
 
         if self._direction:
-            if self._direction.startswith('B'):
+            if self._direction.startswith('B') and self._direction[7:8] == 'L':
                 self._direction = 'btc'
+            elif self._direction.startswith('B') and self._direction[7:8] == 'B':
+                self._direction = 'btcbtc'
             else:
                 self._direction = 'ltc'
 
@@ -1051,19 +1094,18 @@ class MainWindow(QMainWindow):
                 self._amount = int(self._amount_unit * tannhauser['unit'])
 
                 # init bond
-                if self._direction == 'btc':
+                if self._direction == 'btc' or self._direction == 'btcbtc':
                     _amount_valid = True if self._btc_balance_confirmed >= self._amount else False
                 else:
                     _amount_valid = True if self._ltc_balance_confirmed >= self._amount else False
 
                 if _amount_valid:
-                    #self.send_bond()
                     self.new_swap_data()
                 else:
                     _fail_info = QMessageBox(self)
                     _fail_info.setWindowTitle("FAILED!")
 
-                    if self._direction == 'btc':
+                    if self._direction == 'btc' or self._direction == 'btcbtc':
                         _fail_info.setText(f"NOT ENOUGH AVAILABLE FUNDS ({self._btc_balance_confirmed:,} < {self._ping_server['btc_min']:,})")
                     else:
                         _fail_info.setText(f"NOT ENOUGH AVAILABLE FUNDS ({self._ltc_balance_confirmed:,} < {self._ping_server['ltc_min']:,})")
@@ -1076,7 +1118,11 @@ class MainWindow(QMainWindow):
             pass
 
     def get_direction(self):
-        _options = ("BTC -> LTC", "LTC -> BTC")
+        _options = ("BTC -> LTC",
+                "BTC -> BTC",
+                "LTC -> BTC"
+        )
+
         _direction , ok_pressed = QInputDialog.getItem(self, "Path","PLEASE ENTER THE DIRECTION OF YOUR SWAP:", _options, 0, False)
 
         if ok_pressed:
@@ -1099,7 +1145,7 @@ class MainWindow(QMainWindow):
         # unhexlify hex
         _secret_hash = binascii.unhexlify(self._swap_data['secret_hex_bond'])
 
-        if self._direction == 'btc':
+        if self._direction == 'btc' or self._direction == 'btcbtc':
             try:
                 # compose redeem script
                 _sender_address = self._handle_btc.get_clean_address(self._btc_address)
@@ -1121,7 +1167,11 @@ class MainWindow(QMainWindow):
                 # get amounts
                 self._swap_amount = int(self._amount - self._swap_data['btc_bond_amount'])
                 self._bond_amount = int(self._swap_data['btc_bond_amount'])
-                self._conter_amount = self._swap_data['ltc_server_amount']
+
+                if self._direction == 'btc':
+                    self._conter_amount = self._swap_data['ltc_server_amount']
+                else:
+                    self._conter_amount = self._swap_data['btc_server_amount']
 
                 # get current blockheight
                 _current_blockheight = BTCScript.blockcount(self._user_btc_data)
@@ -1139,22 +1189,39 @@ class MainWindow(QMainWindow):
             _fee = self._fund_tx[2]
             self._swap_amount_btc = round(float(self._swap_amount / tannhauser['unit']), 8)
             self._bond_amount_btc = round(float(self._bond_amount / tannhauser['unit']), 8)
-            self._conter_amount_ltc = round(float(self._conter_amount / tannhauser['unit']), 8)
 
-            _output_swap_data = [self._direction,
-                            self._amount,
-                            self._swap_amount,
-                            self._bond_amount,
-                            self._conter_amount,
-                            _fee,
-                            self._htlc_address,
-                            self._refund_blockheight,
-                            _current_blockheight,
-                            self._amount_unit,
-                            self._swap_amount_btc,
-                            self._bond_amount_btc,
-                            self._conter_amount_ltc
-            ]
+            if self._direction == 'btc':
+                self._conter_amount_ltc = round(float(self._conter_amount / tannhauser['unit']), 8)
+                _output_swap_data = [self._direction,
+                                self._amount,
+                                self._swap_amount,
+                                self._bond_amount,
+                                self._conter_amount,
+                                _fee,
+                                self._htlc_address,
+                                self._refund_blockheight,
+                                _current_blockheight,
+                                self._amount_unit,
+                                self._swap_amount_btc,
+                                self._bond_amount_btc,
+                                self._conter_amount_ltc
+                ]
+            else:
+                self._conter_amount_btc = round(float(self._conter_amount / tannhauser['unit']), 8)
+                _output_swap_data = [self._direction,
+                                self._amount,
+                                self._swap_amount,
+                                self._bond_amount,
+                                self._conter_amount,
+                                _fee,
+                                self._htlc_address,
+                                self._refund_blockheight,
+                                _current_blockheight,
+                                self._amount_unit,
+                                self._swap_amount_btc,
+                                self._bond_amount_btc,
+                                self._conter_amount_btc
+                ]
 
             # store the output
             self._output_swap_data = _output_swap_data
@@ -1265,7 +1332,7 @@ class MainWindow(QMainWindow):
             self.setCentralWidget(widget)
 
     def brdcst_transaction(self):
-        if self._direction == 'btc':
+        if self._direction == 'btc' or self._direction == 'btcbtc':
             try:
                 if tannhauser['localhost']:
                     self._fund_txid = BTCScript.send_transaction(self._fund_tx[1], self._user_btc_data)
@@ -1332,7 +1399,24 @@ class MainWindow(QMainWindow):
                                                                 self._btc_redeem_script[1],
                                                                 self._ltc_address,
                                                                 self._swap_amount,
-                                                                self._swap_data['ltc_server_amount']
+                                                                self._swap_data['ltc_server_amount'],
+                                                                self._direction
+                )
+            elif self._direction == 'btcbtc':
+                _save_bond_transaction = utils.save_bond(_ssd,
+                                                                self._swap_token,
+                                                                self._btc_address,
+                                                                self._swap_data['btc_bond_address'],
+                                                                _htlc_address,
+                                                                self._refund_blockheight,
+                                                                self._bond_amount,
+                                                                self._fund_txid,
+                                                                self._swap_data['secret_hex_bond'],
+                                                                self._btc_redeem_script[1],
+                                                                self._btc_address,
+                                                                self._swap_amount,
+                                                                self._swap_data['btc_server_amount'],
+                                                                self._direction
                 )
             else:
                 _save_bond_transaction = utils.save_bond(_ssd,
@@ -1347,7 +1431,8 @@ class MainWindow(QMainWindow):
                                                                 self._ltc_redeem_script[1],
                                                                 self._btc_address,
                                                                 self._swap_amount,
-                                                                self._swap_data['btc_server_amount']
+                                                                self._swap_data['btc_server_amount'],
+                                                                self._direction
                 )
 
             # cooldown
@@ -1377,12 +1462,7 @@ class MainWindow(QMainWindow):
             _filename = self.load_swap_dialog()
             self._load_bond_transaction = utils.load_bond(_filename, True)
             self._swap_token = self._load_bond_transaction['swap_token']
-
-            if tannhauser['net'] == 'testnet':
-                self._direction = 'btc' if self._load_bond_transaction['htlc_address'].startswith('2') else 'ltc'
-            else:
-                self._direction = 'btc' if self._load_bond_transaction['htlc_address'].startswith('3') else 'ltc'
-
+            self._direction = self._load_bond_transaction['direction']
             self._csd = False
 
         # set counter
@@ -1714,7 +1794,235 @@ class MainWindow(QMainWindow):
                                 widget = QWidget()
                                 widget.setLayout(layout)
                                 self.setCentralWidget(widget)
+                        elif self._direction == 'btcbtc':
+                            # import htlc address
+                            BTCScript.import_address(self._csd['htlc_address'], self._user_btc_data)
 
+                            # get addressinfo
+                            _addr_info = BTCScript.get_addressinfo(self._csd['htlc_address'], self._user_btc_data)
+
+                            # get balance
+                            for _i in _transaction_info['vout']:
+                                if self._csd['htlc_address'] in _i['scriptPubKey']['address']:
+                                    try:
+                                        if _transaction_info['confirmations'] >= 1:
+                                            _htlc_balance_server = int(float(_i['value']) * 1e8)
+                                            _confirmations = _transaction_info['confirmations']
+                                            _confirmed = True
+                                        else:
+                                            _htlc_balance_server = 0
+                                            _confirmations = 0
+                                            _confirmed = False
+                                    except Exception as ex:
+                                        print(ex)
+                                        _htlc_balance_server = 0
+                                        _confirmations = 0
+                                        _confirmed = False
+
+                                    break
+                                else:
+                                    _htlc_balance_server = 0
+                                    _confirmations = 0
+                                    _confirmed = False
+
+                            # get real diff
+                            _real_balance_diff = _htlc_balance_server - self._load_bond_transaction['server_amount']
+
+                            # get amount gap
+                            if _htlc_balance_server > 0:
+                                _balance_gap = int(self._load_bond_transaction['server_amount'] / tannhauser['gap_factor'])
+                                _balance_min = int(self._load_bond_transaction['server_amount'] - _balance_gap)
+                                _balance_max = int(self._load_bond_transaction['server_amount'] + _balance_gap)
+
+                                if _htlc_balance_server in range(_balance_min, _balance_max) and _confirmed:
+                                    _valid_htlc_balance = True
+                                    _refund = False
+                                elif _htlc_balance_server not in range(_balance_min, _balance_max) and _confirmed:
+                                    _valid_htlc_balance = False
+                                    _refund = True
+                                else:
+                                    _valid_htlc_balance = False
+                                    _refund = False
+                            else:
+                                _valid_htlc_balance = False
+                                _refund = False
+
+                            if _valid_htlc_balance and not _refund:
+                                # get current fee per byte
+                                _fee_per_byte = BTCScript.get_fee(self._user_btc_data)
+                                _fee_per_byte = round(_fee_per_byte['fee_per_byte'], 8)
+                                _fee_per_byte = int(_fee_per_byte * 1e8)
+
+                                # get swap data
+                                _secret_hash_hex = self._csd['secret_hash_hex']
+                                _btc_amount = self._csd['conter_amount']
+
+                                # unlock funds 4 swap
+                                #_unlock_funds = utils.unlock_utxos('btc', self._csd['user_send_address'])
+
+                                # check balance of btc funding addresses
+                                _bal = BTCScript.unspent(self._csd['user_send_address'], self._user_btc_data)
+                                _balance_user = _bal[2]
+
+                                if (_balance_user - (_fee_per_byte + 1000)) > _btc_amount:
+                                    _valid_amount = True
+                                else:
+                                    _valid_amount = False
+
+                                if _valid_amount:
+                                    # unhexlify hex
+                                    _secret_hash = binascii.unhexlify(_secret_hash_hex)
+
+                                    # compose redeem script
+                                    _sender_address = self._handle_btc.get_clean_address(self._csd['user_send_address'])
+                                    _recipient_address = self._handle_btc.get_clean_address(self._csd['server_claim_address'])
+                                    self._btc_redeem_script = self._handle_btc.get_redeem_script(tannhauser['blocks_btc_user'], _secret_hash, _sender_address, _recipient_address, self._user_btc_data)
+
+                                    # import htlc address
+                                    BTCScript.import_address(self._btc_redeem_script[2], self._user_btc_data)
+
+                                    # get addressinfo
+                                    _btc_addr_info = BTCScript.get_addressinfo(self._btc_redeem_script[2], self._user_btc_data)
+
+                                    # unlock wallet
+                                    BTCScript.unlock_wallet(self._user_btc_data)
+
+                                    # compose tx
+                                    _btc_fund_tx = self._handle_btc.gen_fund_tx(tannhauser['btc_network'], _sender_address, self._btc_redeem_script[2], _btc_amount, self._user_btc_data, _fee_per_byte)
+                                    print('\nfund tx: ', _btc_fund_tx)
+
+                                    # send funds
+                                    self._btc_send_fund = BTCScript.send_transaction(_btc_fund_tx[1], self._user_btc_data)
+
+                                    # save transaction
+                                    _filename = f"User_{self._load_bond_transaction['swap_token']}"
+                                    _htlc_address = str(self._btc_redeem_script[2])
+                                    _sender_funding_address = self._csd['user_send_address']
+                                    _server_claim_address = self._csd['server_claim_address']
+                                    _refund_blockheight = self._btc_redeem_script[0]
+
+                                    _btc_save_swap_transaction = utils.save_user_swap(_filename,
+                                                                                    _sender_funding_address,
+                                                                                    _server_claim_address,
+                                                                                    _htlc_address,
+                                                                                    self._btc_send_fund,
+                                                                                    _btc_amount,
+                                                                                    _refund_blockheight,
+                                                                                    _secret_hash_hex
+                                    )
+
+                                    # short cooldown
+                                    time.sleep(0.2)
+
+                                    # send swap data to server
+                                    _ssd = self.send_swap_data()
+                                else:
+                                    pass
+                            elif not _valid_htlc_balance and _refund:
+                                if self._load_bond_transaction['finalized']:
+                                    # stop loop
+                                    self.stop_loop()
+
+                                    # set progress bar
+                                    self.pbar.setFormat(f"BOND REFUND DONE!")
+                                    self.pbar.setValue(100)
+                                    self._show_buttons = True
+                                else:
+                                    # get current blockheight
+                                    if self._direction == 'btc':
+                                        _curr_blockheight = BTCScript.blockcount(self._user_btc_data)
+                                    else:
+                                        _curr_blockheight = LTCScript.blockcount(self._user_ltc_data)
+
+                                    # get block diff
+                                    _diff = self._load_bond_transaction['refund_blockheight'] - _curr_blockheight
+
+                                    if _diff <= 0:
+                                        # stop loop
+                                        self.stop_loop()
+
+                                        # make refund
+                                        _refund_swap = self.refund(True)
+
+                                        # set progress bar
+                                        self.pbar.setFormat(f"BOND REFUND DONE!")
+                                        self.pbar.setValue(100)
+                                        self._show_buttons = True
+                                    else:
+                                        # set progress bar
+                                        self.pbar.setFormat(f"BOND REFUND POSSIBLE IN {_diff} BLOCKS!")
+                                        self.pbar.setValue(self._loop_counter)
+                                        self._show_buttons = False
+
+                                        self.button2 = QPushButton("PAUSE")
+                                        self.button2.setStyleSheet('color: #E5E5E5; background-color: darkred; font: bold; padding: 0.3em')
+                                        self.button2.clicked.connect(self.main)
+
+                                # set progress bar
+                                self.button3 = QPushButton("MAIN")
+                                self.button3.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
+                                self.button3.clicked.connect(self.main)
+
+                                self.button4 = QPushButton("EXIT")
+                                self.button4.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
+                                self.button4.clicked.connect(lambda: self.close())
+
+                                _res = {
+                                    'load_bond_transaction': self._load_bond_transaction,
+                                    'check_server_data': self._csd,
+                                }
+
+                                layout = QGridLayout()
+                                layout.addWidget(Output(check_swap_data = True, swap_data = _res), 0, 0, 1, 0)
+                                layout.addWidget(self.pbar, 1, 0, 1, 0)
+
+                                if self._show_buttons:
+                                    layout.addWidget(self.button3, 2, 0)
+                                    layout.addWidget(self.button4, 2, 1)
+                                else:
+                                    layout.addWidget(self.button2, 2, 0)
+
+                                widget = QWidget()
+                                widget.setLayout(layout)
+                                self.setCentralWidget(widget)
+                            else:
+                                #status
+                                self.pbar.setFormat('FUNDING TRANSACTION DONE! WAITING FOR CONFIRMATION ...')
+
+                                self.pbar.setValue(self._loop_counter)
+                                self._show_buttons = False
+
+                                self.button2 = QPushButton("PAUSE")
+                                self.button2.setStyleSheet('color: #E5E5E5; background-color: darkred; font: bold; padding: 0.3em')
+                                self.button2.clicked.connect(self.pause_hint)
+
+                                self.button3 = QPushButton("MAIN")
+                                self.button3.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
+                                self.button3.clicked.connect(self.main)
+
+                                self.button4 = QPushButton("EXIT")
+                                self.button4.setStyleSheet('color: #E5E5E5; background-color: #636363; font: bold; padding: 0.3em')
+                                self.button4.clicked.connect(lambda: self.close())
+
+                                _res = {
+                                    'load_bond_transaction': self._load_bond_transaction,
+                                    'check_server_data': self._csd,
+                                }
+
+                                layout = QGridLayout()
+                                layout.addWidget(Output(check_swap_data = True, swap_data = _res), 0, 0, 1, 0)
+                                layout.addWidget(self.pbar, 1, 0, 1, 0)
+                                layout.addWidget(self.button2, 2, 0)
+
+                                if self._show_buttons:
+                                    layout.addWidget(self.button3, 2, 1)
+                                    layout.addWidget(self.button4, 2, 2)
+                                else:
+                                    pass
+
+                                widget = QWidget()
+                                widget.setLayout(layout)
+                                self.setCentralWidget(widget)
                         else:
                             # import htlc address
                             BTCScript.import_address(self._csd['htlc_address'], self._user_btc_data)
@@ -1943,7 +2251,6 @@ class MainWindow(QMainWindow):
                                 widget = QWidget()
                                 widget.setLayout(layout)
                                 self.setCentralWidget(widget)
-
                     except Exception as ex:
                         print(ex)
                 else:
@@ -2025,7 +2332,7 @@ class MainWindow(QMainWindow):
                         }
                 else:
                     try:
-                        if self._direction == 'btc':
+                        if self._direction == 'btc' or self._direction == 'btcbtc':
                             _curr_blockheight = BTCScript.blockcount(self._user_btc_data)
 
                             # get block diff
@@ -2259,7 +2566,11 @@ class MainWindow(QMainWindow):
                                     pass
                             else:
                                 # get secret from tx
-                                _secret = self._handle_ltc.get_secret(self._csd['server_claim_txid'], self._user_ltc_data)
+                                if self._direction == 'ltc':
+                                    _secret = self._handle_ltc.get_secret(self._csd['server_claim_txid'], self._user_ltc_data)
+                                else:
+                                    _secret = self._handle_btc.get_secret(self._csd['server_claim_txid'], self._user_btc_data)
+
                                 _secret_bool = True if _secret != False else False
 
                                 # get current fee per byte
@@ -2325,6 +2636,7 @@ class MainWindow(QMainWindow):
                                                                                     self._load_bond_transaction['conter_address'],
                                                                                     self._load_bond_transaction['swap_amount'],
                                                                                     self._load_bond_transaction['server_amount'],
+                                                                                    self._direction,
                                                                                     self._load_bond_transaction['finalized'],
                                     )
                                 else:
@@ -2386,7 +2698,7 @@ class MainWindow(QMainWindow):
                     self._show_buttons = True
                 else:
                     # get current blockheight
-                    if self._direction == 'btc':
+                    if self._direction == 'btc' or self._direction == 'btcbtc':
                         _curr_blockheight = BTCScript.blockcount(self._user_btc_data)
                     else:
                         _curr_blockheight = LTCScript.blockcount(self._user_ltc_data)
@@ -2481,7 +2793,7 @@ class MainWindow(QMainWindow):
 
     def refund(self, bond = False):
         try:
-            if self._direction == 'btc':
+            if self._direction == 'btc' or self._direction == 'btcbtc':
                 # get current fee per byte
                 _fee_per_byte = BTCScript.get_fee(self._user_btc_data)
                 _fee_per_byte = round(_fee_per_byte['fee_per_byte'], 8)
@@ -2554,6 +2866,7 @@ class MainWindow(QMainWindow):
                                                                 self._load_bond_transaction['conter_address'],
                                                                 self._load_bond_transaction['swap_amount'],
                                                                 self._load_bond_transaction['server_amount'],
+                                                                self._direction,
                                                                 self._load_bond_transaction['finalized'],
                 )
             else:
@@ -2629,6 +2942,7 @@ class MainWindow(QMainWindow):
                                                                 self._load_bond_transaction['conter_address'],
                                                                 self._load_bond_transaction['swap_amount'],
                                                                 self._load_bond_transaction['server_amount'],
+                                                                self._direction,
                                                                 self._load_bond_transaction['finalized'],
                 )
         except Exception as ex:
@@ -2692,7 +3006,7 @@ class MainWindow(QMainWindow):
             self.finalize_swap()
 
     def final_data_output(self):
-        if self._direction == 'btc':
+        if self._direction == 'btc' or self._direction == 'btcbtc':
             _bond_amount = self._bond_amount_btc
         else:
             _bond_amount = self._bond_amount_ltc
@@ -2715,6 +3029,8 @@ class MainWindow(QMainWindow):
         # set path
         if self._direction == 'btc':
             _path = f"/newBond/{self._swap_token}/{self._direction}/{self._btc_address}/{self._swap_data['btc_bond_address']}/{_htlc_address}/{self._refund_blockheight}/{self._fund_txid}/{self._bond_amount}/{self._ltc_address}/{self._swap_amount}"
+        elif self._direction == 'btcbtc':
+            _path = f"/newBond/{self._swap_token}/{self._direction}/{self._btc_address}/{self._swap_data['btc_bond_address']}/{_htlc_address}/{self._refund_blockheight}/{self._fund_txid}/{self._bond_amount}/{self._btc_address}/{self._swap_amount}"
         else:
             _path = f"/newBond/{self._swap_token}/{self._direction}/{self._ltc_address}/{self._swap_data['ltc_bond_address']}/{_htlc_address}/{self._refund_blockheight}/{self._fund_txid}/{self._bond_amount}/{self._btc_address}/{self._swap_amount}"
 
@@ -2743,7 +3059,7 @@ class MainWindow(QMainWindow):
         except Exception as ex:
             print(ex)
 
-        if self._direction == 'btc':
+        if self._direction == 'btc' or self._direction == 'btcbtc':
             # collect data
             _swap_token = self._load_bond_transaction['swap_token']
             _sender_funding_address = self._csd['user_send_address']
@@ -2816,7 +3132,7 @@ class MainWindow(QMainWindow):
         QThreadPool.globalInstance().start(runnable)
 
     def get_amount(self):
-        if self._direction == 'btc':
+        if self._direction == 'btc' or self._direction == 'btcbtc':
             # get max
             if self._ping_server['btc_max'] > self._btc_balance_confirmed:
                 _amount_max = self._btc_balance_confirmed_btc
