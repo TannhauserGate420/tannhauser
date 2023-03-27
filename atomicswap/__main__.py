@@ -1889,7 +1889,6 @@ class MainWindow(QMainWindow):
 
                                     # compose tx
                                     _btc_fund_tx = self._handle_btc.gen_fund_tx(tannhauser['btc_network'], _sender_address, self._btc_redeem_script[2], _btc_amount, self._user_btc_data, _fee_per_byte)
-                                    print('\nfund tx: ', _btc_fund_tx)
 
                                     # send funds
                                     self._btc_send_fund = BTCScript.send_transaction(_btc_fund_tx[1], self._user_btc_data)
@@ -2560,6 +2559,7 @@ class MainWindow(QMainWindow):
                                                                                     self._load_bond_transaction['conter_address'],
                                                                                     self._load_bond_transaction['swap_amount'],
                                                                                     self._load_bond_transaction['server_amount'],
+                                                                                    self._direction,
                                                                                     self._load_bond_transaction['finalized'],
                                     )
                                 else:

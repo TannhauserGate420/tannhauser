@@ -2,7 +2,7 @@
 
 tannhauser = {
     "name" : "TannhauserGate",
-    "version" : "0.3.0 dev",
+    "version" : "0.3.1 dev",
     "authors" : ("iizegrim"),
     "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion'],
     "server_clear" : ['https://btcswap.net:30443'],
