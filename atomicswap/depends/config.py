@@ -4,7 +4,7 @@ tannhauser = {
     "name" : "TannhauserGate",
     "version" : "0.3.1 dev",
     "authors" : ("iizegrim"),
-    "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion'],
+    "server" : ['http://h6icwooluklzmvonhagxrf5aqo6jybooqv35x42fw6eeovyvsihnq2yd.onion:31337'],
     "server_clear" : ['https://btcswap.net:30443'],
     "request_timeout" : 25,
     "btc_network":"BTC",
